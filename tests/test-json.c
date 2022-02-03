@@ -163,6 +163,15 @@ OVSTEST_REGISTER("test-json", test_json_main);
 static void
 json_string_benchmark_main(int argc OVS_UNUSED, char *argv[] OVS_UNUSED)
 {
+    struct json_parser *p = json_parser_create(JSPF_TRAILER);
+    char *string = "{\"Open_vSwitch\":{\"54a5c\":{\"modify\":{\"next_cfg\":4}}}}";
+    json_parser_feed(p, string, strlen(string));
+    struct json *js = json_parser_finish(p);
+    char *new_string = json_to_string(js, 0);
+    printf("%s\n", new_string);
+    free(new_string);
+    json_destroy(js);
+    exit(0);
     struct {
         int n;
         int quote_probablility;

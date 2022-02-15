@@ -163,15 +163,29 @@ OVSTEST_REGISTER("test-json", test_json_main);
 static void
 json_string_benchmark_main(int argc OVS_UNUSED, char *argv[] OVS_UNUSED)
 {
-    struct json_parser *p = json_parser_create(JSPF_TRAILER);
-    char *string = "{\"Open_vSwitch\":{\"54a5c\":{\"modify\":{\"next_cfg\":4}}}}";
-    json_parser_feed(p, string, strlen(string));
-    struct json *js = json_parser_finish(p);
-    char *new_string = json_to_string(js, 0);
-    printf("%s\n", new_string);
-    free(new_string);
-    json_destroy(js);
-    exit(0);
+//    struct json_parser *p = json_parser_create(JSPF_TRAILER);
+//    //char *string = "{\"Open_vSwitch\":{\"54a5c\":{\"modify\":{\"next_cfg\":4}}}}";
+//    char *string1 = "{\
+//   \"CT_Zone\": {\
+//     \"columns\": {\
+//       \"timeout_policy\": {\
+//         \"type\": {\"key\": {\"type\": \"uuid\",\
+//              ";
+//    char *string2 = "            \"refTable\": \"CT_Timeout_Policy\"},\
+//                  \"min\": 0, \"max\": 1}},\
+//       \"external_ids\": {\
+//         \"type\": {\"key\": \"string\", \"value\": \"string\",\
+//                  \"min\": 0, \"max\": \"unlimited\"}}}}\
+//}\
+//";
+//    json_parser_feed(p, string1, strlen(string1));
+//    json_parser_feed(p, string2, strlen(string2));
+//    struct json *js = json_parser_finish(p);
+//    char *new_string = json_to_string(js, 0);
+//    printf("%s\n", new_string);
+//    free(new_string);
+//    json_destroy(js);
+//    exit(0);
     struct {
         int n;
         int quote_probablility;

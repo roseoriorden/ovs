@@ -160,6 +160,7 @@ constraint_schema > schema2
 AT_CHECK([ovsdb-tool create db1 schema1], [0], [ignore], [ignore])
 AT_CHECK([ovsdb-tool create db2 schema2], [0], [ignore], [ignore])
 AT_CHECK([ovsdb-server --detach --no-chdir --pidfile --remote=punix:db.sock db1 db2], [0], [ignore], [ignore])
+on_exit 'kill `cat *.pid`'
 CHECK_DBS([constraints
 ordinals
 ])
@@ -1166,6 +1167,7 @@ n_updates=`expr $n_iterations \* 3 + 1`
 OVSDB_INIT([db])
 AT_CHECK([ovsdb-server --detach --no-chdir --pidfile --log-file --remote=punix:db.sock db],
   [0], [ignore], [ignore])
+on_exit 'kill `cat *.pid`'
 
 # Executes a set of transactions that add a bridge with 100 ports, and
 # then deletes that bridge.  This yields three monitor updates that
@@ -1197,6 +1199,7 @@ AT_CAPTURE_FILE([ovsdb-client-nonblock.err])
 # By default, it is non-blocking, and will get update message
 # for each ovsdb-server transaactions.
 AT_CHECK([ovsdb-client --detach --no-chdir --pidfile=nonblock.pid monitor ALL >ovsdb-client-nonblock.out 2>ovsdb-client-nonblock.err])
+on_exit 'kill `cat *.pid`'
 
 # Start an ovsdb-client monitoring all changes to the database,
 # make it block to force the buffers to fill up, and then execute
@@ -2204,6 +2207,7 @@ AT_CHECK([ovsdb-server -vfile -vvlog:off --log-file=listener.log  dnl
             --pidfile=pid2 --unixctl=unixctl2                     dnl
             --remote=ptcp:0:127.0.0.1                             dnl
             db.tmp], [0], [stdout], [stderr])
+on_exit 'kill `cat pid2`'
 PARSE_LISTENING_PORT([listener.log], [BAD_TCP_PORT])
 
 dnl Start ovsdb-server with recording enabled.

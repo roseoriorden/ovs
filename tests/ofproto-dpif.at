@@ -8556,22 +8556,22 @@ PARSE_LISTENING_PORT([test-sflow.log], [SFLOW_PORT])
 ovs-appctl time/stop
 
 AT_CHECK([ovs-appctl vlog/set dpif:dbg dpif_netdev:dbg])
-AT_CHECK([ovs-vsctl add-br int-br -- set bridge int-br datapath_type=dummy], [0])
-AT_CHECK([ovs-vsctl -- add-port int-br t1 -- set Interface t1 type=gre \
+AT_CHECK([ovs-vsctl add-br br-int -- set bridge br-int datapath_type=dummy], [0])
+AT_CHECK([ovs-vsctl -- add-port br-int t1 -- set Interface t1 type=gre \
                        options:remote_ip=1.1.2.92 options:key=456 ofport_request=4\
-                    -- add-port int-br vm1 -- set Interface vm1 type=dummy \
+                    -- add-port br-int vm5 -- set Interface vm5 type=dummy \
                        options:ifindex=2011 ofport_request=5
                        ], [0])
 
 AT_CHECK([ovs-appctl dpif/show], [0], [dnl
 dummy@ovs-dummy: hit:0 missed:0
+  br-int:
+    br-int 65534/2: (dummy-internal)
+    t1 4/3: (gre: key=456, remote_ip=1.1.2.92)
+    vm5 5/5: (dummy: ifindex=2011)
   br0:
     br0 65534/100: (dummy-internal)
     p0 1/1: (dummy: ifindex=1010)
-  int-br:
-    int-br 65534/2: (dummy-internal)
-    t1 4/4: (gre: key=456, remote_ip=1.1.2.92)
-    vm1 5/3: (dummy: ifindex=2011)
 ])
 
 dnl Add 1.1.2.92 to br0 and action=normal
@@ -8587,9 +8587,9 @@ Cached: 1.1.2.88/32 dev br0 SRC 1.1.2.88 local
 dnl Prime ARP Cache for 1.1.2.92
 AT_CHECK([ovs-appctl netdev-dummy/receive p0 'recirc_id(0),in_port(1),eth(src=f8:bc:12:44:34:b6,dst=ff:ff:ff:ff:ff:ff),eth_type(0x0806),arp(sip=1.1.2.92,tip=1.1.2.88,op=2,sha=f8:bc:12:44:34:b6,tha=00:00:00:00:00:00)'])
 
-dnl configure sflow on int-br only
+dnl configure sflow on br-int only
 ovs-vsctl \
-   set Bridge int-br sflow=@sf -- \
+   set Bridge br-int sflow=@sf -- \
    --id=@sf create sflow targets=\"127.0.0.1:$SFLOW_PORT\" agent=127.0.0.1 \
      header=128 sampling=1 polling=0
 
@@ -8604,12 +8604,12 @@ Cached: 192.168.0.0/16 dev br0 SRC 192.168.1.1
 Cached: 192.168.1.1/32 dev br0 SRC 192.168.1.1 local
 ])
 
-dnl add rule for int-br to force packet onto tunnel. There is no ifindex
+dnl add rule for br-int to force packet onto tunnel. There is no ifindex
 dnl for this port so the sFlow output will just report that it went to
 dnl 1 output (out_format=2, out_ifindex=1)
-AT_CHECK([ovs-ofctl add-flow int-br "actions=4"])
+AT_CHECK([ovs-ofctl add-flow br-int "actions=4"])
 
-AT_CHECK([ovs-appctl netdev-dummy/receive vm1 'in_port(3),eth(src=50:54:00:00:00:05,dst=50:54:00:00:00:0a),eth_type(0x0800),ipv4(src=192.168.1.1,dst=192.168.2.2,proto=1,tos=0,ttl=128,frag=no),icmp(type=8,code=0)'])
+AT_CHECK([ovs-appctl netdev-dummy/receive vm5 'in_port(3),eth(src=50:54:00:00:00:05,dst=50:54:00:00:00:0a),eth_type(0x0800),ipv4(src=192.168.1.1,dst=192.168.2.2,proto=1,tos=0,ttl=128,frag=no),icmp(type=8,code=0)'])
 
 dnl sleep long enough to get the sFlow datagram flushed out (may be delayed for up to 1 second)
 for i in `seq 1 30`; do

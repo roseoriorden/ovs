@@ -872,7 +872,7 @@ ovsdb_index_search(struct hmap *index, struct ovsdb_row *row, size_t i,
     struct hmap_node *node;
 
     for (node = hmap_first_with_hash(index, hash); node;
-         node = hmap_next_with_hash(node)) {
+         node = hmap_next_with_hash(index, node)) {
         struct ovsdb_row *irow = ovsdb_row_from_index_node(node, table, i);
         if (ovsdb_row_equal_columns(row, irow, columns)) {
             return irow;
@@ -924,7 +924,15 @@ duplicate_index_row(const struct ovsdb_column_set *index,
     /* Put 'a' and 'b' in a predictable order to make error messages
      * reproducible for testing. */
     ovsdb_column_set_init(&all_columns);
-    ovsdb_column_set_add_all(&all_columns, a->table);
+
+    struct shash_node *node;
+    SHASH_FOR_EACH (node, &a->table->schema->columns) {
+        const struct ovsdb_column *column = node->data;
+        if (node->name[0] != '_') {
+            ovsdb_column_set_add(&all_columns, column);
+        }
+    }
+
     if (ovsdb_row_compare_columns_3way(a, b, &all_columns) < 0) {
         const struct ovsdb_row *tmp = a;
         a = b;

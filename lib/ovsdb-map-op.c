@@ -41,7 +41,7 @@ map_op_create(struct ovsdb_datum *datum, enum map_op_type type)
 {
     struct map_op *map_op = xmalloc(sizeof *map_op);
     map_op->node.hash = 0;
-    map_op->node.next = HMAP_NODE_NULL;
+    hmap_node_nullify(&map_op->node);
     map_op->datum = datum;
     map_op->type = type;
     return map_op;

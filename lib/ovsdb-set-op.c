@@ -40,7 +40,7 @@ set_op_create(struct ovsdb_datum *datum, enum set_op_type type)
 {
     struct set_op *set_op = xmalloc(sizeof *set_op);
     set_op->node.hash = 0;
-    set_op->node.next = HMAP_NODE_NULL;
+    hmap_node_nullify(&set_op->node);
     set_op->datum = datum;
     set_op->type = type;
     return set_op;

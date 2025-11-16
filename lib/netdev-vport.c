@@ -1275,7 +1275,7 @@ netdev_vport_tunnel_register(void)
               .pop_header = netdev_geneve_pop_header,
               .get_ifindex = NETDEV_VPORT_GET_IFINDEX,
           },
-          {{NULL, NULL, 0, 0}}
+          {{0}}
         },
         { "gre_sys",
           {
@@ -1286,7 +1286,7 @@ netdev_vport_tunnel_register(void)
               .pop_header = netdev_gre_pop_header,
               .get_ifindex = NETDEV_VPORT_GET_IFINDEX,
           },
-          {{NULL, NULL, 0, 0}}
+          {{0}}
         },
         { "vxlan_sys",
           {
@@ -1297,7 +1297,7 @@ netdev_vport_tunnel_register(void)
               .pop_header = netdev_vxlan_pop_header,
               .get_ifindex = NETDEV_VPORT_GET_IFINDEX
           },
-          {{NULL, NULL, 0, 0}}
+          {{0}}
         },
         { "erspan_sys",
           {
@@ -1308,7 +1308,7 @@ netdev_vport_tunnel_register(void)
               .pop_header = netdev_erspan_pop_header,
               .get_ifindex = NETDEV_VPORT_GET_IFINDEX
           },
-          {{NULL, NULL, 0, 0}}
+          {{0}}
         },
         { "ip6erspan_sys",
           {
@@ -1319,7 +1319,7 @@ netdev_vport_tunnel_register(void)
               .pop_header = netdev_erspan_pop_header,
               .get_ifindex = NETDEV_VPORT_GET_IFINDEX
           },
-          {{NULL, NULL, 0, 0}}
+          {{0}}
         },
         { "ip6gre_sys",
           {
@@ -1330,7 +1330,7 @@ netdev_vport_tunnel_register(void)
               .pop_header = netdev_gre_pop_header,
               .get_ifindex = NETDEV_VPORT_GET_IFINDEX,
           },
-          {{NULL, NULL, 0, 0}}
+          {{0}}
         },
         { "gtpu_sys",
           {
@@ -1340,7 +1340,7 @@ netdev_vport_tunnel_register(void)
               .push_header = netdev_gtpu_push_header,
               .pop_header = netdev_gtpu_pop_header,
           },
-          {{NULL, NULL, 0, 0}}
+          {{0}}
         },
         { "udp_sys",
           {
@@ -1348,7 +1348,7 @@ netdev_vport_tunnel_register(void)
               .type = "bareudp",
               .get_ifindex = NETDEV_VPORT_GET_IFINDEX,
           },
-          {{NULL, NULL, 0, 0}}
+          {{0}}
         },
         { "srv6_sys",
           {
@@ -1359,7 +1359,7 @@ netdev_vport_tunnel_register(void)
               .pop_header = netdev_srv6_pop_header,
               .get_ifindex = NETDEV_VPORT_GET_IFINDEX,
           },
-          {{NULL, NULL, 0, 0}}
+          {{0}}
         },
 
     };
@@ -1390,7 +1390,7 @@ netdev_vport_patch_register(void)
           .get_config = get_patch_config,
           .set_config = set_patch_config,
         },
-        {{NULL, NULL, 0, 0}}
+        {{0}}
     };
     simap_init(&patch_class.global_cfg_tracker);
     netdev_register_provider(&patch_class.netdev_class);

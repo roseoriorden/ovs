@@ -305,7 +305,7 @@ def extract_ofp_msgs(output_file_name):
         output.append("static struct raw_instance %s_instances[] = {"
                       % raw.lower())
         for hdrs in r['hdrs']:
-            output.append("    { {0, NULL}, {%d, %d, %d, 0x%x, %d}, %s, 0 },"
+            output.append("    { {0, 0}, {%d, %d, %d, 0x%x, %d}, %s, 0 },"
                           % (hdrs + (raw,)))
 
         output.append("};")

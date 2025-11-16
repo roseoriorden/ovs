@@ -872,7 +872,7 @@ ovsdb_index_search(struct hmap *index, struct ovsdb_row *row, size_t i,
     struct hmap_node *node;
 
     for (node = hmap_first_with_hash(index, hash); node;
-         node = hmap_next_with_hash(node)) {
+         node = hmap_next_with_hash(index, node)) {
         struct ovsdb_row *irow = ovsdb_row_from_index_node(node, table, i);
         if (ovsdb_row_equal_columns(row, irow, columns)) {
             return irow;

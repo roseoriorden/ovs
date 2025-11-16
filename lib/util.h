@@ -273,78 +273,11 @@ char *follow_symlinks(const char *filename);
 
 /* Bitwise tests. */
 
-/* Returns the number of trailing 0-bits in 'n'.  Undefined if 'n' == 0. */
-#if __GNUC__ >= 4
-static inline int
-raw_ctz(uint64_t n)
-{
-    /* With GCC 4.7 on 32-bit x86, if a 32-bit integer is passed as 'n', using
-     * a plain __builtin_ctzll() here always generates an out-of-line function
-     * call.  The test below helps it to emit a single 'bsf' instruction. */
-    return (__builtin_constant_p(n <= UINT32_MAX) && n <= UINT32_MAX
-            ? __builtin_ctz(n)
-            : __builtin_ctzll(n));
-}
-
-static inline int
-raw_clz64(uint64_t n)
-{
-    return __builtin_clzll(n);
-}
-#elif _MSC_VER
-static inline int
-raw_ctz(uint64_t n)
-{
-#ifdef _WIN64
-    unsigned long r = 0;
-    _BitScanForward64(&r, n);
-    return r;
-#else
-    unsigned long low = n, high, r = 0;
-    if (_BitScanForward(&r, low)) {
-        return r;
-    }
-    high = n >> 32;
-    _BitScanForward(&r, high);
-    return r + 32;
-#endif
-}
-
-static inline int
-raw_clz64(uint64_t n)
-{
-#ifdef _WIN64
-    unsigned long r = 0;
-    _BitScanReverse64(&r, n);
-    return 63 - r;
-#else
-    unsigned long low, high = n >> 32, r = 0;
-    if (_BitScanReverse(&r, high)) {
-        return 31 - r;
-    }
-    low = n;
-    _BitScanReverse(&r, low);
-    return 63 - r;
-#endif
-}
-#else
-/* Defined in util.c. */
-int raw_ctz(uint64_t n);
-int raw_clz64(uint64_t n);
-#endif
-
 /* Returns the number of trailing 0-bits in 'n', or 32 if 'n' is 0. */
 static inline int
 ctz32(uint32_t n)
 {
     return n ? raw_ctz(n) : 32;
-}
-
-/* Returns the number of trailing 0-bits in 'n', or 64 if 'n' is 0. */
-static inline int
-ctz64(uint64_t n)
-{
-    return n ? raw_ctz(n) : 64;
 }
 
 /* Returns the number of leading 0-bits in 'n', or 32 if 'n' is 0. */
@@ -359,15 +292,6 @@ static inline int
 clz64(uint64_t n)
 {
     return n ? raw_clz64(n) : 64;
-}
-
-/* Given a word 'n', calculates floor(log_2('n')).  This is equivalent
- * to finding the bit position of the most significant one bit in 'n'.  It is
- * an error to call this function with 'n' == 0. */
-static inline int
-log_2_floor(uint64_t n)
-{
-    return 63 - raw_clz64(n);
 }
 
 /* Given a word 'n', calculates ceil(log_2('n')).  It is an error to
@@ -436,30 +360,6 @@ static inline uintmax_t
 rightmost_1bit(uintmax_t x)
 {
     return x & -x;
-}
-
-/* Returns 'x' with its rightmost 1-bit changed to a zero (e.g. 01011000 =>
- * 01010000), or 0 if 'x' is 0. */
-static inline uintmax_t
-zero_rightmost_1bit(uintmax_t x)
-{
-    return x & (x - 1);
-}
-
-/* Returns the index of the rightmost 1-bit in 'x' (e.g. 01011000 => 3), or an
- * undefined value if 'x' is 0. */
-static inline int
-rightmost_1bit_idx(uint64_t x)
-{
-    return ctz64(x);
-}
-
-/* Returns the index of the leftmost 1-bit in 'x' (e.g. 01011000 => 6), or an
- * undefined value if 'x' is 0. */
-static inline uint32_t
-leftmost_1bit_idx(uint64_t x)
-{
-    return log_2_floor(x);
 }
 
 /* Return a ovs_be32 prefix in network byte order with 'plen' highest bits set.

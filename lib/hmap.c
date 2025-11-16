@@ -34,8 +34,8 @@ COVERAGE_DEFINE(hmap_reserve);
 void
 hmap_init(struct hmap *hmap)
 {
+    memset(&hmap->one, 0, sizeof(hmap->one));
     hmap->buckets = &hmap->one;
-    hmap->one = NULL;
     hmap->mask = 0;
     hmap->n = 0;
 }
@@ -45,7 +45,23 @@ hmap_init(struct hmap *hmap)
 void
 hmap_destroy(struct hmap *hmap)
 {
-    if (hmap && hmap->buckets != &hmap->one) {
+    if (!hmap) {
+        return;
+    }
+    for (size_t i = 0; i <= hmap->mask; i++) {
+        struct bucket *bucket = &hmap->buckets[i];
+        while (bucket->bitfield & (1 << 7)) {
+            struct bucket *child = (struct bucket *) bucket->nodes[6];
+            if (bucket != &hmap->buckets[i]) {
+                free(bucket);
+            }
+            bucket = child;
+        }
+        if (bucket != &hmap->buckets[i]) {
+            free(bucket);
+        }
+    }
+    if (hmap->buckets != &hmap->one) {
         free(hmap->buckets);
     }
 }
@@ -60,10 +76,29 @@ hmap_destroy(struct hmap *hmap)
 void
 hmap_clear(struct hmap *hmap)
 {
-    if (hmap->n > 0) {
-        hmap->n = 0;
-        memset(hmap->buckets, 0, (hmap->mask + 1) * sizeof *hmap->buckets);
+    if (!hmap->n) {
+        return;
     }
+    /* Fix, this is so redundant */
+    for (size_t i = 0; i <= hmap->mask; i++) {
+        struct bucket *bucket = &hmap->buckets[i];
+        while (bucket->bitfield & (1 << 7)) {
+            memset(bucket->hash_byte, 0, sizeof bucket->hash_byte);
+            bucket->bitfield &= ~((1 << 7) - 1);
+            /* I guess setting the node *s to null isn't needed but it feels good */
+            for (size_t j = 0; j < 6; j++) {
+                bucket->nodes[j] = NULL;
+            }
+            bucket = (struct bucket*) bucket->nodes[6];
+        }
+        memset(bucket->hash_byte, 0, sizeof bucket->hash_byte);
+        bucket->bitfield &= ~((1 << 7) - 1);
+        /* I guess setting the node *s to null isn't needed but it feels good */
+        for (size_t j = 0; j < 6; j++) {
+            bucket->nodes[j] = NULL;
+        }
+    }
+    hmap->n = 0;
 }
 
 /* Exchanges hash maps 'a' and 'b'. */
@@ -97,24 +132,24 @@ resize(struct hmap *hmap, size_t new_mask, const char *where)
 
     hmap_init(&tmp);
     if (new_mask) {
-        tmp.buckets = xmalloc(sizeof *tmp.buckets * (new_mask + 1));
+        size_t bucket_count = new_mask + 1;
+        tmp.buckets = malloc(bucket_count * sizeof *tmp.buckets);
         tmp.mask = new_mask;
-        for (i = 0; i <= tmp.mask; i++) {
-            tmp.buckets[i] = NULL;
-        }
+        memset(tmp.buckets, 0, bucket_count * sizeof *tmp.buckets);
     }
     int n_big_buckets = 0;
     int biggest_count = 0;
     int n_biggest_buckets = 0;
     for (i = 0; i <= hmap->mask; i++) {
-        struct hmap_node *node, *next;
+        struct hmap_node *node, copy;
         int count = 0;
-        for (node = hmap->buckets[i]; node; node = next) {
-            next = node->next;
+        for (node = hmap_first_in_bucket(hmap, i); node;
+             node = hmap_next_in_bucket(hmap, &copy)) {
+            copy = *node;
             hmap_insert_fast(&tmp, node, node->hash);
             count++;
         }
-        if (count > 5) {
+        if (count > 6) {
             n_big_buckets++;
             if (count > biggest_count) {
                 biggest_count = count;
@@ -144,7 +179,7 @@ resize(struct hmap *hmap, size_t new_mask, const char *where)
 static size_t
 calc_mask(size_t capacity)
 {
-    size_t mask = capacity / 2;
+    size_t mask = capacity / 6;
     mask |= mask >> 1;
     mask |= mask >> 2;
     mask |= mask >> 4;
@@ -214,11 +249,17 @@ void
 hmap_node_moved(struct hmap *hmap,
                 struct hmap_node *old_node, struct hmap_node *node)
 {
-    struct hmap_node **bucket = &hmap->buckets[node->hash & hmap->mask];
-    while (*bucket != old_node) {
-        bucket = &(*bucket)->next;
+    struct bucket *bucket = &hmap->buckets[node->hash & hmap->mask];
+
+    size_t index_diff = node->index;
+    if (!bucket_descend(&bucket, &index_diff)) {
+        return;
     }
-    *bucket = node;
+
+    if (bucket->nodes[index_diff] == old_node) {
+        bucket->nodes[index_diff] = node;
+        bucket->hash_byte[index_diff] = (uint8_t) (node->hash >> 24) & 0xFF;
+    }
 }
 
 /* Chooses and returns a randomly selected node from 'hmap', which must not be
@@ -229,28 +270,35 @@ hmap_node_moved(struct hmap *hmap,
 struct hmap_node *
 hmap_random_node(const struct hmap *hmap)
 {
-    struct hmap_node *bucket, *node;
-    size_t n, i;
+    struct hmap_node *node;
+    size_t random_bucket_idx;
 
-    /* Choose a random non-empty bucket. */
+    /* Choose a random non-empty bucket. Save its index. */
     for (;;) {
-        bucket = hmap->buckets[random_uint32() & hmap->mask];
-        if (bucket) {
+        random_bucket_idx = random_uint32() & hmap->mask;
+        if (hmap_first_in_bucket(hmap, random_bucket_idx)) {
             break;
         }
     }
 
-    /* Count nodes in bucket. */
-    n = 0;
-    for (node = bucket; node; node = node->next) {
-        n++;
+    /* Find the number of nodes in the bucket. */
+    size_t node_count = 0;
+    for (node = hmap_first_in_bucket(hmap, random_bucket_idx); node;
+         node = hmap_next_in_bucket(hmap, node)) {
+        node_count++;
     }
 
-    /* Choose random node from bucket. */
-    i = random_range(n);
-    for (node = bucket; i-- > 0; node = node->next) {
-        continue;
+    if (!node_count) {
+        return NULL;
     }
+
+    /* Choose a random index and get that node. */
+    node = hmap_first_in_bucket(hmap, random_bucket_idx);
+    size_t random_node_idx = random_uint32() % node_count;
+    for (size_t i = 0; i < random_node_idx; i++) {
+        node = hmap_next_in_bucket(hmap, node);
+    }
+
     return node;
 }
 
@@ -266,18 +314,19 @@ struct hmap_node *
 hmap_at_position(const struct hmap *hmap,
                  struct hmap_position *pos)
 {
+    // hmap_next_in_bucket with the index
     size_t offset;
     size_t b_idx;
 
     offset = pos->offset;
     for (b_idx = pos->bucket; b_idx <= hmap->mask; b_idx++) {
-        struct hmap_node *node;
+        struct hmap_node *node = hmap_first_in_bucket(hmap, b_idx);
         size_t n_idx;
 
-        for (n_idx = 0, node = hmap->buckets[b_idx]; node != NULL;
-             n_idx++, node = node->next) {
+        for (n_idx = 0; node != NULL;
+             n_idx++, node = hmap_next_in_bucket(hmap, node)) {
             if (n_idx == offset) {
-                if (node->next) {
+                if (hmap_next_in_bucket(hmap, node)) {
                     pos->bucket = node->hash & hmap->mask;
                     pos->offset = offset + 1;
                 } else {
@@ -301,11 +350,87 @@ hmap_contains(const struct hmap *hmap, const struct hmap_node *node)
 {
     struct hmap_node *p;
 
-    for (p = hmap_first_in_bucket(hmap, node->hash); p; p = p->next) {
+    for (p = hmap_first_in_bucket(hmap, node->hash); p;
+         p = hmap_next_in_bucket(hmap, p)) {
         if (p == node) {
             return true;
         }
     }
 
     return false;
+}
+
+void hmap_insert_child(struct hmap *hmap, struct hmap_node *node, size_t hash)
+{
+    struct bucket *bucket = &hmap->buckets[hash & hmap->mask];
+    size_t bucket_count = 0;
+    while (bucket) {
+        uint8_t inverted_bits = ~(bucket->bitfield);
+        size_t index = rightmost_1bit_idx((uint64_t) inverted_bits);
+        if (index == 6 && bucket->bitfield & (1 << 7)) {
+            bucket = (struct bucket *) bucket->nodes[6];
+            bucket_count++;
+        } else if (index == 7) {
+            // if there's no child bucket but one needs to be added
+            /* Save a pointer to the node I'm moving to child */
+            struct bucket *tmp = (struct bucket *) bucket->nodes[6];
+
+            /* Set child bucket status bit as 1 */
+            bucket->bitfield |= (1 << 7);
+
+            /* Save the hash byte before clearing it */
+            uint8_t tmp_hash_byte = bucket->hash_byte[6];
+
+            /* Set hash byte and presence bit as 0 */
+            bucket->hash_byte[6] = 0;
+            bucket->bitfield &= ~(1 << 6);
+
+            /* Clear out node to make room for child bucket */
+            bucket->nodes[6] = (struct bucket *) malloc(sizeof *bucket);
+            bucket = (struct bucket *) bucket->nodes[6];
+            memset(bucket, 0, sizeof(struct bucket));
+
+            /* Set child bucket's first node to be the one I moved */
+            bucket->nodes[0] = (void *)tmp;
+
+            /* Set appropriate presence bit */
+            bucket->bitfield |= 1;
+
+            /* Restore hash byte in child bucket */
+            bucket->hash_byte[0] = tmp_hash_byte;
+            //printf("This bucket was full and there was no child, so create one\n");
+            bucket->nodes[1] = node;
+
+            // Get one byte of hash and add it to the hash byte array.
+            bucket->hash_byte[1] = (uint8_t) ((hash >> 24) & 0xFF);
+            node->hash = hash;
+
+            /* Calculate the node's index.
+             * Bucket #0:  0  1  2  3  4  5
+             * Bucket #1:  6  7  8  9 10 11
+             * Bucket #3: 12 13 14 15 16 17 18 */
+            node->index = 6 * (bucket_count + 1) + 1;
+
+            bucket->bitfield |= (1 << 1);
+            hmap->n++;
+            return;
+        } else if (index <= 6) {
+            // insert as normal at empty_index
+            bucket->nodes[index] = node;
+
+            // Get one byte of hash and add it to the hash byte array.
+            bucket->hash_byte[index] = (uint8_t) ((hash >> 24) & 0xFF);
+            node->hash = hash;
+
+            /* Calculate the node's index.
+             * Bucket #0:  0  1  2  3  4  5
+             * Bucket #1:  6  7  8  9 10 11
+             * Bucket #3: 12 13 14 15 16 17 18 */
+            node->index = 6 * bucket_count + index;
+
+            bucket->bitfield |= (1 << index);
+            hmap->n++;
+            return;
+        }
+    }
 }

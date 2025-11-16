@@ -1165,8 +1165,11 @@ cmd_emer_reset(struct ctl_context *ctx)
         /* We only want to save the "hwaddr" key from other_config. */
         hwaddr = smap_get(&br->other_config, "hwaddr");
         if (hwaddr) {
-            const struct smap smap = SMAP_CONST1(&smap, "hwaddr", hwaddr);
+            struct smap smap;
+            smap_init(&smap);
+            smap_add(&smap, "hwaddr", hwaddr);
             ovsrec_bridge_set_other_config(br, &smap);
+            smap_destroy(&smap);
         } else {
             ovsrec_bridge_set_other_config(br, NULL);
         }

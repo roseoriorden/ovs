@@ -294,46 +294,6 @@ hmap_is_empty(const struct hmap *hmap)
     return hmap->n == 0;
 }
 
-static void hmap_insert_child(struct bucket **bucket, size_t index) {
-    if (index == 6 && (*bucket)->bitfield & (1 << 7)) {
-        // In this case, there's a child bucket and index 6 is intentionaly
-        // open to help indicate that. So move on to child bucket
-        //printf("6 is empty but that's bc there's a child bucket pointer there. So move onto that\n");
-        *bucket = (struct bucket *) (*bucket)->nodes[6];
-        return;
-    } else if (index == 7) {
-        // if there's no child bucket but one needs to be added
-        /* Save a pointer to the node I'm moving to child */
-        struct bucket **tmp = (struct bucket **) (*bucket)->nodes[6];
-
-        /* Set child bucket status bit as 1 */
-        (*bucket)->bitfield |= (1 << 7);
-
-        /* Save the hash byte before clearing it */
-        uint8_t tmp_hash_byte = (*bucket)->hash_byte[6];
-
-        /* Set hash byte and presence bit as 0 */
-        (*bucket)->hash_byte[6] = 0;
-        (*bucket)->bitfield &= ~(1 << 6);
-
-        /* Clear out node to make room for child bucket */
-        (*bucket)->nodes[6] = (struct bucket *) malloc(sizeof bucket);
-        *bucket = (struct bucket *) (*bucket)->nodes[6];
-        memset(*bucket, 0, sizeof bucket);
-
-        /* Set child bucket's first node to be the one I moved */
-        (*bucket)->nodes[0] = (void *)tmp;
-
-        /* Set appropriate presence bit */
-        (*bucket)->bitfield |= (1 << 0);
-
-        /* Restore hash byte in child bucket */
-        (*bucket)->hash_byte[0] = tmp_hash_byte;
-        //printf("This bucket was full and there was no child, so create one\n");
-        return;
-    }
-}
-
 /* Inserts 'node', with the given 'hash', into 'hmap'.  'hmap' is never
  * expanded automatically. */
 /* Move fast insert part for right here right now insertion into separate inline fast
@@ -349,7 +309,15 @@ hmap_insert_fast(struct hmap *hmap, struct hmap_node *node, size_t hash)
         uint8_t inverted_bits = ~(bucket->bitfield);
         int empty_index = rightmost_1bit_idx((uint64_t) inverted_bits);
 
-        if (empty_index < 6  || (empty_index == 6 && !(bucket->bitfield & (1 << 7)))) {
+        if (empty_index <= 6) {
+            if (empty_index == 6 && bucket->bitfield & (1 << 7)) {
+                // In this case, there's a child bucket and index 6 is intentionaly
+                // open to help indicate that. So move on to child bucket
+                //printf("6 is empty but that's bc there's a child bucket pointer there. So move onto that\n");
+                bucket = (struct bucket *) bucket->nodes[6];
+                bucket_count++;
+                continue;
+            }
             // insert as normal at empty_index
             bucket->nodes[empty_index] = node;
 
@@ -367,9 +335,36 @@ hmap_insert_fast(struct hmap *hmap, struct hmap_node *node, size_t hash)
             hmap->n++;
             //printf("Found empty spot, inserting!\n");
             return;
-        } else {
-            hmap_insert_child(&bucket, empty_index);
+        } else if (empty_index == 7) {
+            // if there's no child bucket but one needs to be added
+            /* Save a pointer to the node I'm moving to child */
+            struct bucket *tmp = (struct bucket *) bucket->nodes[6];
+
+            /* Set child bucket status bit as 1 */
+            bucket->bitfield |= (1 << 7);
+
+            /* Save the hash byte before clearing it */
+            uint8_t tmp_hash_byte = bucket->hash_byte[6];
+
+            /* Set hash byte and presence bit as 0 */
+            bucket->hash_byte[6] = 0;
+            bucket->bitfield &= ~(1 << 6);
+
+            /* Clear out node to make room for child bucket */
+            bucket->nodes[6] = (struct bucket *) malloc(sizeof(struct bucket));
+            bucket = (struct bucket *) bucket->nodes[6];
+            memset(bucket, 0, sizeof(struct bucket));
+
+            /* Set child bucket's first node to be the one I moved */
+            bucket->nodes[0] = (void *)tmp;
+
+            /* Set appropriate presence bit */
+            bucket->bitfield |= (1 << 0);
+
+            /* Restore hash byte in child bucket */
+            bucket->hash_byte[0] = tmp_hash_byte;
             bucket_count++;
+            //printf("This bucket was full and there was no child, so create one\n");
         }
     }
 }

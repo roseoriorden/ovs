@@ -294,80 +294,7 @@ hmap_is_empty(const struct hmap *hmap)
     return hmap->n == 0;
 }
 
-static void hmap_insert_child(struct hmap *hmap, struct hmap_node *node, size_t hash)
-{
-    struct bucket *bucket = &hmap->buckets[hash & hmap->mask];
-    size_t bucket_count = 0;
-    while (bucket) {
-        uint8_t inverted_bits = ~(bucket->bitfield);
-        size_t index = rightmost_1bit_idx((uint64_t) inverted_bits);
-        if (index == 6 && bucket->bitfield & (1 << 7)) {
-            bucket = (struct bucket *) bucket->nodes[6];
-        } else if (index == 7) {
-            // if there's no child bucket but one needs to be added
-            /* Save a pointer to the node I'm moving to child */
-            struct bucket *tmp = (struct bucket *) bucket->nodes[6];
-
-            /* Set child bucket status bit as 1 */
-            bucket->bitfield |= (1 << 7);
-
-            /* Save the hash byte before clearing it */
-            uint8_t tmp_hash_byte = bucket->hash_byte[6];
-
-            /* Set hash byte and presence bit as 0 */
-            bucket->hash_byte[6] = 0;
-            bucket->bitfield &= ~(1 << 6);
-
-            /* Clear out node to make room for child bucket */
-            bucket->nodes[6] = (struct bucket *) malloc(sizeof *bucket);
-            bucket = (struct bucket *) bucket->nodes[6];
-            memset(bucket, 0, sizeof(struct bucket));
-
-            /* Set child bucket's first node to be the one I moved */
-            bucket->nodes[0] = (void *)tmp;
-
-            /* Set appropriate presence bit */
-            bucket->bitfield |= 1;
-
-            /* Restore hash byte in child bucket */
-            bucket->hash_byte[0] = tmp_hash_byte;
-            //printf("This bucket was full and there was no child, so create one\n");
-            bucket->nodes[1] = node;
-
-            // Get one byte of hash and add it to the hash byte array.
-            bucket->hash_byte[1] = (uint8_t) ((hash >> 24) & 0xFF);
-            node->hash = hash;
-
-            /* Calculate the node's index.
-             * Bucket #0:  0  1  2  3  4  5
-             * Bucket #1:  6  7  8  9 10 11
-             * Bucket #3: 12 13 14 15 16 17 18 */
-            node->index = 6 * bucket_count + 1;
-
-            bucket->bitfield |= 1;
-            hmap->n++;
-            return;
-        } else if (index <= 6) {
-            // insert as normal at empty_index
-            bucket->nodes[index] = node;
-
-            // Get one byte of hash and add it to the hash byte array.
-            bucket->hash_byte[index] = (uint8_t) ((hash >> 24) & 0xFF);
-            node->hash = hash;
-
-            /* Calculate the node's index.
-             * Bucket #0:  0  1  2  3  4  5
-             * Bucket #1:  6  7  8  9 10 11
-             * Bucket #3: 12 13 14 15 16 17 18 */
-            node->index = 6 * bucket_count + index;
-
-            bucket->bitfield |= (1 << index);
-            hmap->n++;
-            return;
-        }
-        bucket_count++;
-    }
-}
+void hmap_insert_child(struct hmap *hmap, struct hmap_node *node, size_t hash);
 
 /* Inserts 'node', with the given 'hash', into 'hmap'.  'hmap' is never
  * expanded automatically. */
@@ -379,32 +306,28 @@ hmap_insert_fast(struct hmap *hmap, struct hmap_node *node, size_t hash)
 {
     struct bucket *bucket = &hmap->buckets[hash & hmap->mask];
     //printf("Adding: 0x%08lx\n", hash);
-    while (bucket) {
-        uint8_t inverted_bits = ~(bucket->bitfield);
-        size_t empty_index = rightmost_1bit_idx((uint64_t) inverted_bits);
-        if ((empty_index == 6 && (bucket->bitfield & (1 << 7))) || empty_index == 7) {
-            hmap_insert_child(hmap, node, hash);
-            return;
-        } else if (empty_index <= 6) {
-            // insert as normal at empty_index
-            bucket->nodes[empty_index] = node;
-
-            // Get one byte of hash and add it to the hash byte array.
-            bucket->hash_byte[empty_index] = (uint8_t) ((hash >> 24) & 0xFF);
-            node->hash = hash;
-
-            /* Calculate the node's index.
-             * Bucket #0:  0  1  2  3  4  5
-             * Bucket #1:  6  7  8  9 10 11
-             * Bucket #3: 12 13 14 15 16 17 18 */
-            node->index = empty_index;
-
-            bucket->bitfield |= (1 << empty_index);
-            hmap->n++;
-            //printf("Found empty spot, inserting!\n");
-            return;
-        }
+    uint8_t inverted_bits = ~(bucket->bitfield);
+    size_t empty_index = rightmost_1bit_idx((uint64_t) inverted_bits);
+    if (OVS_UNLIKELY(empty_index > 5)) {
+        hmap_insert_child(hmap, node, hash);
+        return;
     }
+    // insert as normal at empty_index
+    bucket->nodes[empty_index] = node;
+
+    // Get one byte of hash and add it to the hash byte array.
+    bucket->hash_byte[empty_index] = (uint8_t) ((hash >> 24) & 0xFF);
+    node->hash = hash;
+
+    /* Calculate the node's index.
+     * Bucket #0:  0  1  2  3  4  5
+     * Bucket #1:  6  7  8  9 10 11
+     * Bucket #3: 12 13 14 15 16 17 18 */
+    node->index = empty_index;
+
+    bucket->bitfield |= (1 << empty_index);
+    hmap->n++;
+    //printf("Found empty spot, inserting!\n");
 }
 
 /* Inserts 'node', with the given 'hash', into 'hmap', and expands 'hmap' if
@@ -418,7 +341,7 @@ hmap_insert_at(struct hmap *hmap, struct hmap_node *node, size_t hash,
                const char *where)
 {
     hmap_insert_fast(hmap, node, hash);
-    if (hmap->n / 2 > hmap->mask) {
+    if (hmap->n / 6 > hmap->mask) {
         hmap_expand_at(hmap, where);
     }
 }
@@ -509,24 +432,24 @@ hmap_next_with_hash__(const struct hmap *hmap, size_t index, size_t hash)
 
     while (field) {
         index = rightmost_1bit_idx(field);
-        // if it doesn't match, unset that bit in field so it will
-        // check the next bit on the next iteration
-        if (index <= 6) {
-            // check hash and stuff
-            // return if it matches (both hashes)
-            if (((hash >> 24) & 0xFF) == bucket->hash_byte[index]) {
-                /* Now compare the actual full hashes */
-                struct hmap_node *node = (struct hmap_node *) bucket->nodes[index];
-                if (hash == node->hash) {
-                    return CONST_CAST(struct hmap_node *, node);
-                }
-            }
-            field = zero_rightmost_1bit(field);
-        } else if (index == 7) {
+        if (OVS_UNLIKELY(index == 7)) {
             // go to child bucket and check there
             bucket = (struct bucket *) bucket->nodes[6];
             field = bucket->bitfield;
+            continue;
         }
+        // check hash and stuff
+        // return if it matches (both hashes)
+        if (((hash >> 24) & 0xFF) == bucket->hash_byte[index]) {
+            /* Now compare the actual full hashes */
+            struct hmap_node *node = (struct hmap_node *) bucket->nodes[index];
+            if (hash == node->hash) {
+                return CONST_CAST(struct hmap_node *, node);
+            }
+        }
+        // if it doesn't match, unset that bit in field so it will
+        // check the next bit on the next iteration
+        field = zero_rightmost_1bit(field);
     }
     return NULL;
 }

@@ -381,8 +381,10 @@ hmap_remove(struct hmap *hmap, struct hmap_node *node)
 
     /* Since I have the index, find the bucket # and index within bucket. */
     size_t index_diff = node->index;
-    if (!bucket_descend(&bucket, &index_diff)) {
-        return;
+    if (OVS_UNLIKELY(index_diff > 6)) {
+        if (!bucket_descend(&bucket, &index_diff)) {
+            return;
+        }
     }
 
     if (bucket->nodes[index_diff] == node) {
@@ -407,8 +409,10 @@ hmap_replace(struct hmap *hmap,
 {
     struct bucket *bucket = &hmap->buckets[old_node->hash & hmap->mask];
     size_t index = old_node->index;
-    if (!bucket_descend(&bucket, &index)) {
-        return;
+    if (OVS_UNLIKELY(index > 6)) {
+        if (!bucket_descend(&bucket, &index)) {
+            return;
+        }
     }
     // I don't need to set the presence bit because it's already set!
     bucket->nodes[index] = new_node;
@@ -421,8 +425,10 @@ static inline struct hmap_node *
 hmap_next_with_hash__(const struct hmap *hmap, size_t index, size_t hash)
 {
     struct bucket *bucket = &hmap->buckets[hash & hmap->mask];
-    if (!bucket_descend(&bucket, &index)) {
-        return NULL;
+    if (OVS_UNLIKELY(index > 6)) {
+        if (!bucket_descend(&bucket, &index)) {
+            return NULL;
+        }
     }
 
     uint8_t field = bucket->bitfield;
@@ -466,8 +472,10 @@ static inline struct hmap_node *
 hmap_next_in_bucket__(const struct hmap *hmap, size_t index, size_t hash)
 {
     struct bucket *bucket = &hmap->buckets[hash & hmap->mask];
-    if (!bucket_descend(&bucket, &index)) {
-        return NULL;
+    if (OVS_UNLIKELY(index > 6)) {
+        if (!bucket_descend(&bucket, &index)) {
+            return NULL;
+        }
     }
 
    /* Clear all bits up to but not including index */

@@ -109,7 +109,7 @@ mapping_find_by_isid(struct lldp *lldp, uint32_t isid)
 {
     struct aa_mapping_internal *m;
 
-    HMAP_FOR_EACH_IN_BUCKET (m, hmap_node_isid, hash_int(isid, 0),
+    HMAP_FOR_EACH_WITH_HASH (m, hmap_node_isid, hash_int(isid, 0),
                              &lldp->mappings_by_isid) {
         if (isid == m->isid) {
             return m;
@@ -127,7 +127,7 @@ mapping_find_by_aux(struct lldp *lldp, const void *aux) OVS_REQUIRES(mutex)
 {
     struct aa_mapping_internal *m;
 
-    HMAP_FOR_EACH_IN_BUCKET (m, hmap_node_aux, hash_pointer(aux, 0),
+    HMAP_FOR_EACH_WITH_HASH (m, hmap_node_aux, hash_pointer(aux, 0),
                              &lldp->mappings_by_aux) {
         if (aux == m->aux) {
             return m;

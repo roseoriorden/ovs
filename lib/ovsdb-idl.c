@@ -3623,7 +3623,7 @@ ovsdb_idl_txn_get_insert_uuid(const struct ovsdb_idl_txn *txn,
     const struct ovsdb_idl_txn_insert *insert;
 
     ovs_assert(txn->status == TXN_SUCCESS || txn->status == TXN_UNCHANGED);
-    HMAP_FOR_EACH_IN_BUCKET (insert, hmap_node,
+    HMAP_FOR_EACH_WITH_HASH (insert, hmap_node,
                              uuid_hash(uuid), &txn->inserted_rows) {
         if (uuid_equals(uuid, &insert->dummy)) {
             return &insert->real;

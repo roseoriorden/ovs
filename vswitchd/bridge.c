@@ -4270,7 +4270,7 @@ bridge_aa_mapping_find(struct bridge *br, const int64_t isid)
 {
     struct aa_mapping *m;
 
-    HMAP_FOR_EACH_IN_BUCKET (m,
+    HMAP_FOR_EACH_WITH_HASH (m,
                              hmap_node,
                              hash_bytes(&isid, sizeof isid, 0),
                              &br->mappings) {
@@ -4865,7 +4865,7 @@ iface_from_ofp_port(const struct bridge *br, ofp_port_t ofp_port)
 {
     struct iface *iface;
 
-    HMAP_FOR_EACH_IN_BUCKET (iface, ofp_port_node, hash_ofp_port(ofp_port),
+    HMAP_FOR_EACH_WITH_HASH (iface, ofp_port_node, hash_ofp_port(ofp_port),
                              &br->ifaces) {
         if (iface->ofp_port == ofp_port) {
             return iface;
@@ -5130,7 +5130,7 @@ mirror_find_by_uuid(struct bridge *br, const struct uuid *uuid)
 {
     struct mirror *m;
 
-    HMAP_FOR_EACH_IN_BUCKET (m, hmap_node, uuid_hash(uuid), &br->mirrors) {
+    HMAP_FOR_EACH_WITH_HASH (m, hmap_node, uuid_hash(uuid), &br->mirrors) {
         if (uuid_equals(uuid, &m->uuid)) {
             return m;
         }

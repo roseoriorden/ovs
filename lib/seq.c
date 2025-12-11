@@ -176,7 +176,7 @@ seq_wait__(struct seq *seq, uint64_t value, const char *where)
     uint32_t hash = hash_int(id, 0);
     struct seq_waiter *waiter;
 
-    HMAP_FOR_EACH_IN_BUCKET (waiter, hmap_node, hash, &seq->waiters) {
+    HMAP_FOR_EACH_WITH_HASH (waiter, hmap_node, hash, &seq->waiters) {
         if (waiter->ovsthread_id == id) {
             if (waiter->value != value) {
                 /* The current value is different from the value we've already

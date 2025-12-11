@@ -1462,7 +1462,7 @@ find_genl_family_by_id(uint16_t id)
 {
     struct genl_family *family;
 
-    HMAP_FOR_EACH_IN_BUCKET (family, hmap_node, hash_int(id, 0),
+    HMAP_FOR_EACH_WITH_HASH (family, hmap_node, hash_int(id, 0),
                              &genl_families) {
         if (family->id == id) {
             return family;

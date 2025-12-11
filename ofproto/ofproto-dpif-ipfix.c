@@ -831,7 +831,7 @@ dpif_ipfix_find_port(const struct dpif_ipfix *di,
 {
     struct dpif_ipfix_port *dip;
 
-    HMAP_FOR_EACH_IN_BUCKET (dip, hmap_node, hash_odp_port(odp_port),
+    HMAP_FOR_EACH_WITH_HASH (dip, hmap_node, hash_odp_port(odp_port),
                              &di->ports) {
         if (dip->odp_port == odp_port) {
             return dip;

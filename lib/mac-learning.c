@@ -87,7 +87,7 @@ mac_learning_port_lookup(struct mac_learning *ml, void *port)
 {
     struct mac_learning_port *mlport;
 
-    HMAP_FOR_EACH_IN_BUCKET (mlport, hmap_node, hash_pointer(port, ml->secret),
+    HMAP_FOR_EACH_WITH_HASH (mlport, hmap_node, hash_pointer(port, ml->secret),
                              &ml->ports_by_ptr) {
         if (mlport->port == port) {
             return mlport;

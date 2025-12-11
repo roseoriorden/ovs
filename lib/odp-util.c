@@ -3531,7 +3531,7 @@ odp_portno_names_get(const struct hmap *portno_names, odp_port_t port_no)
     if (portno_names) {
         struct odp_portno_names *odp_portno_names;
 
-        HMAP_FOR_EACH_IN_BUCKET (odp_portno_names, hmap_node,
+        HMAP_FOR_EACH_WITH_HASH (odp_portno_names, hmap_node,
                                  hash_odp_port(port_no), portno_names) {
             if (odp_portno_names->port_no == port_no) {
                 return odp_portno_names->name;

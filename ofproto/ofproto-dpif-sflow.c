@@ -164,7 +164,7 @@ dpif_sflow_find_port(const struct dpif_sflow *ds, odp_port_t odp_port)
 {
     struct dpif_sflow_port *dsp;
 
-    HMAP_FOR_EACH_IN_BUCKET (dsp, hmap_node, hash_odp_port(odp_port),
+    HMAP_FOR_EACH_WITH_HASH (dsp, hmap_node, hash_odp_port(odp_port),
                              &ds->ports) {
         if (dsp->odp_port == odp_port) {
             return dsp;

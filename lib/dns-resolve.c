@@ -208,7 +208,7 @@ resolve_find_or_new__(const char *name)
 {
     struct resolve_request *req;
 
-    HMAP_FOR_EACH_IN_BUCKET(req, hmap_node, hash_string(name, 0),
+    HMAP_FOR_EACH_WITH_HASH(req, hmap_node, hash_string(name, 0),
                             &all_reqs__) {
         if (!strcmp(name, req->name)) {
             return req;

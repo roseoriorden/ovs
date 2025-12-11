@@ -2750,7 +2750,7 @@ ofproto_get_port(const struct ofproto *ofproto, ofp_port_t ofp_port)
 {
     struct ofport *port;
 
-    HMAP_FOR_EACH_IN_BUCKET (port, hmap_node, hash_ofp_port(ofp_port),
+    HMAP_FOR_EACH_WITH_HASH (port, hmap_node, hash_ofp_port(ofp_port),
                              &ofproto->ports) {
         if (port->ofp_port == ofp_port) {
             return port;
@@ -2764,7 +2764,7 @@ ofport_get_usage(const struct ofproto *ofproto, ofp_port_t ofp_port)
 {
     struct ofport_usage *usage;
 
-    HMAP_FOR_EACH_IN_BUCKET (usage, hmap_node, hash_ofp_port(ofp_port),
+    HMAP_FOR_EACH_WITH_HASH (usage, hmap_node, hash_ofp_port(ofp_port),
                              &ofproto->ofport_usage) {
         if (usage->ofp_port == ofp_port) {
             return usage->last_used;
@@ -2778,7 +2778,7 @@ ofport_set_usage(struct ofproto *ofproto, ofp_port_t ofp_port,
                  long long int last_used)
 {
     struct ofport_usage *usage;
-    HMAP_FOR_EACH_IN_BUCKET (usage, hmap_node, hash_ofp_port(ofp_port),
+    HMAP_FOR_EACH_WITH_HASH (usage, hmap_node, hash_ofp_port(ofp_port),
                              &ofproto->ofport_usage) {
         if (usage->ofp_port == ofp_port) {
             usage->last_used = last_used;
@@ -2798,7 +2798,7 @@ static void
 ofport_remove_usage(struct ofproto *ofproto, ofp_port_t ofp_port)
 {
     struct ofport_usage *usage;
-    HMAP_FOR_EACH_IN_BUCKET (usage, hmap_node, hash_ofp_port(ofp_port),
+    HMAP_FOR_EACH_WITH_HASH (usage, hmap_node, hash_ofp_port(ofp_port),
                              &ofproto->ofport_usage) {
         if (usage->ofp_port == ofp_port) {
             hmap_remove(&ofproto->ofport_usage, &usage->hmap_node);

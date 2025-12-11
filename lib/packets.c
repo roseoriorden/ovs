@@ -170,7 +170,7 @@ eth_addr_is_reserved(const struct eth_addr ea)
     }
 
     ea64 = eth_addr_to_uint64(ea);
-    HMAP_FOR_EACH_IN_BUCKET (node, hmap_node, hash_uint64(ea64), &addrs) {
+    HMAP_FOR_EACH_WITH_HASH (node, hmap_node, hash_uint64(ea64), &addrs) {
         if (node->ea64 == ea64) {
             return true;
         }

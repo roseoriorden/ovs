@@ -672,7 +672,7 @@ find_vlan_bridge(struct vsctl_bridge *parent, int vlan)
 {
     struct vsctl_bridge *child;
 
-    HMAP_FOR_EACH_IN_BUCKET (child, children_node, hash_int(vlan, 0),
+    HMAP_FOR_EACH_WITH_HASH (child, children_node, hash_int(vlan, 0),
                              &parent->children) {
         if (child->vlan == vlan) {
             return child;

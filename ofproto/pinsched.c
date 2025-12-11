@@ -110,7 +110,7 @@ pinqueue_get(struct pinsched *ps, ofp_port_t port_no)
     uint32_t hash = hash_ofp_port(port_no);
     struct pinqueue *q;
 
-    HMAP_FOR_EACH_IN_BUCKET (q, node, hash, &ps->queues) {
+    HMAP_FOR_EACH_WITH_HASH (q, node, hash, &ps->queues) {
         if (port_no == q->port_no) {
             return q;
         }

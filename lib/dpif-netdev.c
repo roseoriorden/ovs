@@ -5001,7 +5001,7 @@ tx_port_lookup(const struct hmap *hmap, odp_port_t port_no)
 {
     struct tx_port *tx;
 
-    HMAP_FOR_EACH_IN_BUCKET (tx, node, hash_port_no(port_no), hmap) {
+    HMAP_FOR_EACH_WITH_HASH (tx, node, hash_port_no(port_no), hmap) {
         if (tx->port->port_no == port_no) {
             return tx;
         }

@@ -315,7 +315,7 @@ lookup_remote_mp(const struct cfm *cfm, uint64_t mpid) OVS_REQUIRES(mutex)
 {
     struct remote_mp *rmp;
 
-    HMAP_FOR_EACH_IN_BUCKET (rmp, node, hash_mpid(mpid), &cfm->remote_mps) {
+    HMAP_FOR_EACH_WITH_HASH (rmp, node, hash_mpid(mpid), &cfm->remote_mps) {
         if (rmp->mpid == mpid) {
             return rmp;
         }

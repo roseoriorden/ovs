@@ -2294,7 +2294,7 @@ nxm_field_by_header(uint64_t header, bool is_action, enum ofperr *h_error)
 
     header_no_len = nxm_no_len(header);
 
-    HMAP_FOR_EACH_IN_BUCKET (nfi, header_node, hash_uint64(header_no_len),
+    HMAP_FOR_EACH_WITH_HASH (nfi, header_node, hash_uint64(header_no_len),
                              &nxm_header_map) {
         if (is_action && nxm_length(header) > 0) {
             if (nxm_length(header) != nxm_length(nfi->nf.header) && h_error ) {

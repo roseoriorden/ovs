@@ -1802,7 +1802,7 @@ xbridge_lookup(struct xlate_cfg *xcfg, const struct ofproto_dpif *ofproto)
 
     xbridges = &xcfg->xbridges;
 
-    HMAP_FOR_EACH_IN_BUCKET (xbridge, hmap_node, uuid_hash(&ofproto->uuid),
+    HMAP_FOR_EACH_WITH_HASH (xbridge, hmap_node, uuid_hash(&ofproto->uuid),
                              xbridges) {
         if (xbridge->ofproto == ofproto) {
             return xbridge;
@@ -1853,7 +1853,7 @@ xbundle_lookup(struct xlate_cfg *xcfg, const struct ofbundle *ofbundle)
 
     xbundles = &xcfg->xbundles;
 
-    HMAP_FOR_EACH_IN_BUCKET (xbundle, hmap_node, hash_pointer(ofbundle, 0),
+    HMAP_FOR_EACH_WITH_HASH (xbundle, hmap_node, hash_pointer(ofbundle, 0),
                              xbundles) {
         if (xbundle->ofbundle == ofbundle) {
             return xbundle;
@@ -1874,7 +1874,7 @@ xport_lookup(struct xlate_cfg *xcfg, const struct ofport_dpif *ofport)
 
     xports = &xcfg->xports;
 
-    HMAP_FOR_EACH_IN_BUCKET (xport, hmap_node, hash_pointer(ofport, 0),
+    HMAP_FOR_EACH_WITH_HASH (xport, hmap_node, hash_pointer(ofport, 0),
                              xports) {
         if (xport->ofport == ofport) {
             return xport;
@@ -1895,7 +1895,7 @@ xport_lookup_by_uuid(struct xlate_cfg *xcfg, const struct uuid *uuid)
 
     xports = &xcfg->xports_uuid;
 
-    HMAP_FOR_EACH_IN_BUCKET (xport, uuid_node, uuid_hash(uuid), xports) {
+    HMAP_FOR_EACH_WITH_HASH (xport, uuid_node, uuid_hash(uuid), xports) {
         if (uuid_equals(&xport->uuid, uuid)) {
             return xport;
         }
@@ -2030,7 +2030,7 @@ get_ofp_port(const struct xbridge *xbridge, ofp_port_t ofp_port)
 {
     struct xport *xport;
 
-    HMAP_FOR_EACH_IN_BUCKET (xport, ofp_node, hash_ofp_port(ofp_port),
+    HMAP_FOR_EACH_WITH_HASH (xport, ofp_node, hash_ofp_port(ofp_port),
                              &xbridge->xports) {
         if (xport->ofp_port == ofp_port) {
             return xport;
@@ -7939,7 +7939,7 @@ get_skb_priority(const struct xport *xport, uint32_t skb_priority)
     uint32_t hash;
 
     hash = hash_int(skb_priority, 0);
-    HMAP_FOR_EACH_IN_BUCKET (pdscp, hmap_node, hash, &xport->skb_priorities) {
+    HMAP_FOR_EACH_WITH_HASH (pdscp, hmap_node, hash, &xport->skb_priorities) {
         if (pdscp->skb_priority == skb_priority) {
             return pdscp;
         }

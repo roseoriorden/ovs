@@ -1113,7 +1113,7 @@ ofconn_get_bundle(struct ofconn *ofconn, uint32_t id)
 {
     struct ofp_bundle *bundle;
 
-    HMAP_FOR_EACH_IN_BUCKET(bundle, node, bundle_hash(id), &ofconn->bundles) {
+    HMAP_FOR_EACH_WITH_HASH(bundle, node, bundle_hash(id), &ofconn->bundles) {
         if (bundle->id == id) {
             return bundle;
         }
@@ -2118,7 +2118,7 @@ ofmonitor_lookup(struct ofconn *ofconn, uint32_t id)
 {
     struct ofmonitor *m;
 
-    HMAP_FOR_EACH_IN_BUCKET (m, ofconn_node, hash_int(id, 0),
+    HMAP_FOR_EACH_WITH_HASH (m, ofconn_node, hash_int(id, 0),
                              &ofconn->monitors) {
         if (m->id == id) {
             return m;

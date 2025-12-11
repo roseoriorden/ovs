@@ -3179,7 +3179,7 @@ tc_find_queue__(const struct netdev *netdev_, unsigned int queue_id,
     struct netdev_linux *netdev = netdev_linux_cast(netdev_);
     struct tc_queue *queue;
 
-    HMAP_FOR_EACH_IN_BUCKET (queue, hmap_node, hash, &netdev->tc->queues) {
+    HMAP_FOR_EACH_WITH_HASH (queue, hmap_node, hash, &netdev->tc->queues) {
         if (queue->queue_id == queue_id) {
             return queue;
         }

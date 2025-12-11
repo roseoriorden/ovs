@@ -1241,7 +1241,7 @@ generate_discriminator(void)
         /* 'disc' is by definition random, so there's no reason to waste time
          * hashing it. */
         disc = random_uint32();
-        HMAP_FOR_EACH_IN_BUCKET (bfd, node, disc, all_bfds) {
+        HMAP_FOR_EACH_WITH_HASH (bfd, node, disc, all_bfds) {
             if (bfd->disc == disc) {
                 disc = 0;
                 break;

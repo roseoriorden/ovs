@@ -314,7 +314,6 @@ struct hmap_node *
 hmap_at_position(const struct hmap *hmap,
                  struct hmap_position *pos)
 {
-    // hmap_next_in_bucket with the index
     size_t offset;
     size_t b_idx;
 
@@ -371,54 +370,53 @@ void hmap_insert_child(struct hmap *hmap, struct hmap_node *node, size_t hash)
             bucket = (struct bucket *) bucket->nodes[6];
             bucket_count++;
         } else if (index == 7) {
-            // if there's no child bucket but one needs to be added
-            /* Save a pointer to the node I'm moving to child */
+            /* Save a pointer to the node being moved to child bucket. */
             struct bucket *tmp = (struct bucket *) bucket->nodes[6];
 
-            /* Set child bucket status bit as 1 */
+            /* Set child bucket status bit as 1. */
             bucket->bitfield |= (1 << 7);
 
-            /* Save the hash byte before clearing it */
+            /* Save the hash byte before clearing it. */
             uint8_t tmp_hash_byte = bucket->hash_byte[6];
 
-            /* Set hash byte and presence bit as 0 */
+            /* Set hash byte and presence bit as 0. */
             bucket->hash_byte[6] = 0;
             bucket->bitfield &= ~(1 << 6);
 
-            /* Clear out node to make room for child bucket */
+            /* Clear out node to make room for child bucket. */
             bucket->nodes[6] = (struct bucket *) malloc(sizeof *bucket);
             bucket = (struct bucket *) bucket->nodes[6];
             memset(bucket, 0, sizeof(struct bucket));
 
-            /* Set child bucket's first node to be the one I moved */
+            /* Set child bucket's first node to be the one I moved. */
             bucket->nodes[0] = (void *)tmp;
 
-            /* Set appropriate presence bit */
+            /* Set appropriate presence bit. */
             bucket->bitfield |= 1;
 
-            /* Restore hash byte in child bucket */
+            /* Restore hash byte in child bucket. */
             bucket->hash_byte[0] = tmp_hash_byte;
-            //printf("This bucket was full and there was no child, so create one\n");
             bucket->nodes[1] = node;
 
-            // Get one byte of hash and add it to the hash byte array.
+            /* Get one byte of hash and add it to the hash byte array. */
             bucket->hash_byte[1] = (uint8_t) ((hash >> 24) & 0xFF);
             node->hash = hash;
 
             /* Calculate the node's index.
-             * Bucket #0:  0  1  2  3  4  5
-             * Bucket #1:  6  7  8  9 10 11
-             * Bucket #3: 12 13 14 15 16 17 18 */
+             * Bucket #0:   0   1   2   3   4   5
+             * Bucket #1:   6   7   8   9  10  11
+             * Bucket #3:  12  13  14  15  16  17  18
+             * etc. */
             node->index = 6 * (bucket_count + 1) + 1;
 
             bucket->bitfield |= (1 << 1);
             hmap->n++;
             return;
         } else if (index <= 6) {
-            // insert as normal at empty_index
+            /* Insert as normal at index. */
             bucket->nodes[index] = node;
 
-            // Get one byte of hash and add it to the hash byte array.
+            /* Get one byte of hash and add it to the hash byte array. */
             bucket->hash_byte[index] = (uint8_t) ((hash >> 24) & 0xFF);
             node->hash = hash;
 

@@ -892,7 +892,7 @@ find_conjunctive_match__(struct hmap *matches, uint64_t id, uint32_t hash)
 {
     struct conjunctive_match *m;
 
-    HMAP_FOR_EACH_IN_BUCKET (m, hmap_node, hash, matches) {
+    HMAP_FOR_EACH_WITH_HASH (m, hmap_node, hash, matches) {
         if (m->id == id) {
             return m;
         }

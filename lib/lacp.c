@@ -894,7 +894,7 @@ member_lookup(const struct lacp *lacp, const void *member_) OVS_REQUIRES(mutex)
 {
     struct member *member;
 
-    HMAP_FOR_EACH_IN_BUCKET (member, node, hash_pointer(member_, 0),
+    HMAP_FOR_EACH_WITH_HASH (member, node, hash_pointer(member_, 0),
                              &lacp->members) {
         if (member->aux == member_) {
             return member;

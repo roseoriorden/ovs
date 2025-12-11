@@ -177,7 +177,7 @@ struct raft_server *
 raft_server_find(const struct hmap *servers, const struct uuid *sid)
 {
     struct raft_server *s;
-    HMAP_FOR_EACH_IN_BUCKET (s, hmap_node, uuid_hash(sid), servers) {
+    HMAP_FOR_EACH_WITH_HASH (s, hmap_node, uuid_hash(sid), servers) {
         if (uuid_equals(sid, &s->sid)) {
             return s;
         }

@@ -3338,7 +3338,7 @@ bundle_lookup(const struct ofproto_dpif *ofproto, void *aux)
 {
     struct ofbundle *bundle;
 
-    HMAP_FOR_EACH_IN_BUCKET (bundle, hmap_node, hash_pointer(aux, 0),
+    HMAP_FOR_EACH_WITH_HASH (bundle, hmap_node, hash_pointer(aux, 0),
                              &ofproto->bundles) {
         if (bundle->aux == aux) {
             return bundle;
@@ -7170,7 +7170,7 @@ odp_port_to_ofport(const struct dpif_backer *backer, odp_port_t odp_port)
     struct ofport_dpif *port;
 
     ovs_rwlock_rdlock(&backer->odp_to_ofport_lock);
-    HMAP_FOR_EACH_IN_BUCKET (port, odp_port_node, hash_odp_port(odp_port),
+    HMAP_FOR_EACH_WITH_HASH (port, odp_port_node, hash_odp_port(odp_port),
                              &backer->odp_to_ofport_map) {
         if (port->odp_port == odp_port) {
             ovs_rwlock_unlock(&backer->odp_to_ofport_lock);

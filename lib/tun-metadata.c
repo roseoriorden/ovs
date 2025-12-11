@@ -431,7 +431,7 @@ tun_meta_find_key(const struct hmap *hmap, uint32_t key)
 {
     struct tun_meta_entry *entry;
 
-    HMAP_FOR_EACH_IN_BUCKET (entry, node, tun_meta_hash(key), hmap) {
+    HMAP_FOR_EACH_WITH_HASH (entry, node, tun_meta_hash(key), hmap) {
         if (entry->key == key) {
             return entry;
         }

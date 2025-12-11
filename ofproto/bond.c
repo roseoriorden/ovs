@@ -1913,7 +1913,7 @@ bond_member_lookup(struct bond *bond, const void *member_)
 {
     struct bond_member *member;
 
-    HMAP_FOR_EACH_IN_BUCKET (member, hmap_node, hash_pointer(member_, 0),
+    HMAP_FOR_EACH_WITH_HASH (member, hmap_node, hash_pointer(member_, 0),
                              &bond->members) {
         if (member->aux == member_) {
             return member;

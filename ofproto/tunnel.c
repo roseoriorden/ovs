@@ -523,7 +523,7 @@ tnl_find_ofport(const struct ofport_dpif *ofport) OVS_REQ_RDLOCK(rwlock)
 {
     struct tnl_port *tnl_port;
 
-    HMAP_FOR_EACH_IN_BUCKET (tnl_port, ofport_node, hash_pointer(ofport, 0),
+    HMAP_FOR_EACH_WITH_HASH (tnl_port, ofport_node, hash_pointer(ofport, 0),
                              ofport_map) {
         if (tnl_port->ofport == ofport) {
             return tnl_port;

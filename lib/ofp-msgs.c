@@ -1086,7 +1086,7 @@ ofpmp_assembler_find(struct hmap *assembler, ovs_be32 xid)
     }
 
     struct ofpmp_partial *p;
-    HMAP_FOR_EACH_IN_BUCKET (p, hmap_node, hash_xid(xid), assembler) {
+    HMAP_FOR_EACH_WITH_HASH (p, hmap_node, hash_xid(xid), assembler) {
         if (p->xid == xid) {
             return p;
         }

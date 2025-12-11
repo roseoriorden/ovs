@@ -47,7 +47,7 @@ namemap_find_by_number(const struct namemap *map, uint32_t number)
 {
     struct namemap_node *node;
 
-    HMAP_FOR_EACH_IN_BUCKET (node, number_node, hash_int(number, 0),
+    HMAP_FOR_EACH_WITH_HASH (node, number_node, hash_int(number, 0),
                              &map->by_number) {
         if (node->number == number) {
             return node;

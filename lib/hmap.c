@@ -251,7 +251,7 @@ hmap_node_moved(struct hmap *hmap,
 {
     struct bucket *bucket = &hmap->buckets[node->hash & hmap->mask];
 
-    size_t index_diff = node->index;
+    uint32_t index_diff = node->index;
     if (!bucket_descend(&bucket, &index_diff)) {
         return;
     }
@@ -359,13 +359,13 @@ hmap_contains(const struct hmap *hmap, const struct hmap_node *node)
     return false;
 }
 
-void hmap_insert_child(struct hmap *hmap, struct hmap_node *node, size_t hash)
+void hmap_insert_child(struct hmap *hmap, struct hmap_node *node, uint32_t hash)
 {
     struct bucket *bucket = &hmap->buckets[hash & hmap->mask];
     size_t bucket_count = 0;
     while (bucket) {
         uint8_t inverted_bits = ~(bucket->bitfield);
-        size_t index = rightmost_1bit_idx((uint64_t) inverted_bits);
+        uint32_t index = rightmost_1bit_idx((uint64_t) inverted_bits);
         if (index == 6 && bucket->bitfield & (1 << 7)) {
             bucket = (struct bucket *) bucket->nodes[6];
             bucket_count++;

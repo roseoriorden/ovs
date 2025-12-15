@@ -28,8 +28,8 @@ extern "C" {
 
 /* A hash map node, to be embedded inside the data structure being mapped. */
 struct hmap_node {
-    size_t hash;                /* Hash value. */
-    size_t index;               /* The position within the bucket layout */
+    uint32_t hash;                /* Hash value. */
+    uint32_t index;               /* The position within the bucket layout */
 };
 
 /* Returns the hash value embedded in 'node'. */
@@ -104,13 +104,13 @@ void hmap_reserve_at(struct hmap *, size_t capacity, const char *where);
 
 /* Insertion and deletion. */
 static inline void hmap_insert_at(struct hmap *, struct hmap_node *,
-                                  size_t hash, const char *where);
+                                  uint32_t hash, const char *where);
 #define hmap_insert(HMAP, NODE, HASH) \
     hmap_insert_at(HMAP, NODE, HASH, OVS_SOURCE_LOCATOR)
 
 static inline void hmap_insert_fast(struct hmap *,
-                                    struct hmap_node *, size_t hash);
-static inline bool bucket_descend(struct bucket **bucket, size_t *index);
+                                    struct hmap_node *, uint32_t hash);
+static inline bool bucket_descend(struct bucket **bucket, uint32_t *index);
 static inline void hmap_remove(struct hmap *, struct hmap_node *);
 
 void hmap_node_moved(struct hmap *, struct hmap_node *, struct hmap_node *);
@@ -156,12 +156,12 @@ struct hmap_node *hmap_random_node(const struct hmap *);
          UPDATE_MULTIVAR(NODE, hmap_next_in_bucket(HMAP, ITER_VAR(NODE))))
 
 static inline struct hmap_node *hmap_first_with_hash(const struct hmap *,
-                                                     size_t hash);
+                                                     uint32_t hash);
 static inline struct hmap_node *hmap_next_with_hash(const struct hmap *hmap,
                                                     const struct hmap_node
                                                     *node);
 static inline struct hmap_node *hmap_first_in_bucket(const struct hmap *,
-                                                     size_t hash);
+                                                     uint32_t hash);
 static inline struct hmap_node *hmap_next_in_bucket(const struct hmap *hmap,
                                                     const struct hmap_node *);
 
@@ -294,12 +294,12 @@ hmap_is_empty(const struct hmap *hmap)
     return hmap->n == 0;
 }
 
-void hmap_insert_child(struct hmap *hmap, struct hmap_node *node, size_t hash);
+void hmap_insert_child(struct hmap *hmap, struct hmap_node *node, uint32_t hash);
 
 /* Inserts 'node', with the given 'hash', into 'hmap'.  'hmap' is never
  * expanded automatically. */
 static inline void
-hmap_insert_fast(struct hmap *hmap, struct hmap_node *node, size_t hash)
+hmap_insert_fast(struct hmap *hmap, struct hmap_node *node, uint32_t hash)
 {
     struct bucket *bucket = &hmap->buckets[hash & hmap->mask];
 
@@ -337,7 +337,7 @@ hmap_insert_fast(struct hmap *hmap, struct hmap_node *node, size_t hash)
  * automatically provide the caller's source file and line number for
  * 'where'.) */
 static inline void
-hmap_insert_at(struct hmap *hmap, struct hmap_node *node, size_t hash,
+hmap_insert_at(struct hmap *hmap, struct hmap_node *node, uint32_t hash,
                const char *where)
 {
     hmap_insert_fast(hmap, node, hash);
@@ -347,7 +347,7 @@ hmap_insert_at(struct hmap *hmap, struct hmap_node *node, size_t hash,
 }
 
 static inline bool
-bucket_descend(struct bucket **bucket, size_t *index) {
+bucket_descend(struct bucket **bucket, uint32_t *index) {
     if (*index < 6) {
         return true;
     }
@@ -374,7 +374,7 @@ hmap_remove(struct hmap *hmap, struct hmap_node *node)
 {
     struct bucket *bucket = &hmap->buckets[node->hash & hmap->mask];
 
-    size_t index_diff = node->index;
+    uint32_t index_diff = node->index;
     if (OVS_UNLIKELY(index_diff > 5)) {
         if (!bucket_descend(&bucket, &index_diff)) {
             return;
@@ -403,7 +403,7 @@ hmap_replace(struct hmap *hmap,
 {
     struct bucket *bucket = &hmap->buckets[old_node->hash & hmap->mask];
 
-    size_t index = old_node->index;
+    uint32_t index = old_node->index;
     if (OVS_UNLIKELY(index > 5)) {
         if (!bucket_descend(&bucket, &index)) {
             return;
@@ -417,7 +417,7 @@ hmap_replace(struct hmap *hmap,
 }
 
 static inline struct hmap_node *
-hmap_next_with_hash__(const struct hmap *hmap, size_t index, size_t hash)
+hmap_next_with_hash__(const struct hmap *hmap, uint32_t index, uint32_t hash)
 {
     struct bucket *bucket = &hmap->buckets[hash & hmap->mask];
     if (OVS_UNLIKELY(index > 5)) {
@@ -460,13 +460,13 @@ hmap_next_with_hash__(const struct hmap *hmap, size_t index, size_t hash)
 /* Returns the first node in 'hmap' with the given 'hash', or a null pointer if
  * no nodes have that hash value. */
 static inline struct hmap_node *
-hmap_first_with_hash(const struct hmap *hmap, size_t hash)
+hmap_first_with_hash(const struct hmap *hmap, uint32_t hash)
 {
     return hmap_next_with_hash__(hmap, 0, hash);
 }
 
 static inline struct hmap_node *
-hmap_next_in_bucket__(const struct hmap *hmap, size_t index, size_t hash)
+hmap_next_in_bucket__(const struct hmap *hmap, uint32_t index, uint32_t hash)
 {
     struct bucket *bucket = &hmap->buckets[hash & hmap->mask];
     if (OVS_UNLIKELY(index > 5)) {
@@ -499,7 +499,7 @@ hmap_next_in_bucket__(const struct hmap *hmap, size_t index, size_t hash)
 /* Returns the first node in 'hmap' in the bucket in which the given 'hash'
  * would land, or a null pointer if that bucket is empty. */
 static inline struct hmap_node *
-hmap_first_in_bucket(const struct hmap *hmap, size_t hash)
+hmap_first_in_bucket(const struct hmap *hmap, uint32_t hash)
 {
     return hmap_next_in_bucket__(hmap, 0, hash);
 }

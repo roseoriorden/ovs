@@ -77,7 +77,7 @@ struct hmap {
     { (struct bucket *const) &(HMAP)->one, {0}, 0, 0 }
 
 /* Initializer for an immutable struct hmap 'HMAP' that contains 'N' nodes
- * linked together starting at 'NODE'.  The hmap only has a single chain of
+ * linked together starting at 'NODE'.  The hmap only has a single chain of //fix this comment
  * hmap_nodes, so 'N' should be small. */
 #define HMAP_CONST(HMAP, N, NODE) {                                 \
         CONST_CAST(struct bucket *, &(HMAP)->one), NODE, 0, N }

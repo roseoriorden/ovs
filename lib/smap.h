@@ -74,23 +74,60 @@ struct smap_node {
  *
  * The 'KEY', 'K1', 'K2' arguments are evaluated multiple times.
  */
-#define SMAP_CONST1(SMAP, KEY, VALUE) (const struct smap) { \
-            HMAP_CONST(&(SMAP)->map, 1, SMAP_NODE(KEY, VALUE)) \
-        }
-#define SMAP_CONST2(SMAP, K1, V1, K2, V2) (const struct smap) {     \
-            HMAP_CONST(&(SMAP)->map, 2,                             \
-                       SMAP_NODE(K1, V1, SMAP_NODE(K2, V2)))  \
-        }
-// need to also set the node index?!
-#define SMAP_NODE(KEY, VALUE)                   \
-        &(struct smap_node) {                   \
-            .node = {                           \
-                .hash = hash_string(KEY, 0),    \
-            },                                  \
-            .key = CONST_CAST(char *, KEY),     \
-            .value = CONST_CAST(char *, VALUE), \
-        }.node
 
+// To-do: Make these not terrible and closer to how they were before
+#define SMAP_CONST1(SMAP, KEY, VALUE) (const struct smap) { \
+        .map = { \
+            .buckets = CONST_CAST(struct bucket *, &(&(SMAP)->map)->one), \
+            .one = { \
+                .bitfield = 1, \
+                .hash_byte = { 0xFF & (hash_string(KEY, 0) >> 24), }, \
+                .nodes = { \
+                    &(struct smap_node) {                   \
+                        .node = {                           \
+                            .hash = hash_string(KEY, 0),    \
+                            .index = 0, \
+                        },                                  \
+                        .key = CONST_CAST(char *, KEY),     \
+                        .value = CONST_CAST(char *, VALUE), \
+                    }.node, \
+                }, \
+            }, \
+            .mask = 0, \
+            .n = 1, \
+        }, \
+}
+
+#define SMAP_CONST2(SMAP, K1, V1, K2, V2) (const struct smap) {     \
+        .map = { \
+            .buckets = CONST_CAST(struct bucket *, &(&(SMAP)->map)->one), \
+            .one = { \
+                .bitfield = 3, \
+                .hash_byte = { 0xFF & (hash_string(K1, 0) >> 24), \
+                               0xFF & (hash_string(K2, 0) >> 24), }, \
+                .nodes = { \
+                    &(struct smap_node) {                   \
+                        .node = {                           \
+                            .hash = hash_string(K1, 0),    \
+                            .index = 0, \
+                        },                                  \
+                        .key = CONST_CAST(char *, K1),     \
+                        .value = CONST_CAST(char *, V1), \
+                    }.node, \
+                    &(struct smap_node) {                   \
+                        .node = {                           \
+                            .hash = hash_string(K2, 0),    \
+                            .index = 1, \
+                        },                                  \
+                        .key = CONST_CAST(char *, K2),     \
+                        .value = CONST_CAST(char *, V2), \
+                    }.node, \
+                }, \
+            }, \
+            .mask = 0, \
+            .n = 2, \
+        }, \
+}
 
 void smap_init(struct smap *);
 void smap_destroy(struct smap *);

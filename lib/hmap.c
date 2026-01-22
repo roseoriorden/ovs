@@ -179,7 +179,7 @@ resize(struct hmap *hmap, size_t new_mask, const char *where)
 static size_t
 calc_mask(size_t capacity)
 {
-    size_t mask = capacity / 6;
+    size_t mask = capacity / 4;
     mask |= mask >> 1;
     mask |= mask >> 2;
     mask |= mask >> 4;
